@@ -1,0 +1,376 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Appointment {
+  clinic         Clinic?               @relation(fields: [clinicId], references: [id])
+  clinicId       Int?
+  createdAt      DateTime              @default(now())
+  endTime        DateTime
+  id             Int                   @id @default(autoincrement())
+  message        Message[]
+  notes          String?               @db.Text
+  patient        Patient               @relation(fields: [patientId], references: [id])
+  patientId      Int
+  professional   Professional          @relation(fields: [professionalId], references: [id])
+  professionalId Int
+  reason         String?               @db.Text
+  startTime      DateTime
+  status         EnumAppointmentStatus @default(SCHEDULED)
+  updatedAt      DateTime
+
+  @@index([clinicId], map: "Appointment_clinicId_fkey")
+  @@index([patientId], map: "Appointment_patientId_fkey")
+  @@index([professionalId], map: "Appointment_professionalId_fkey")
+  @@index([endTime])
+  @@index([startTime])
+  @@map("appointment")
+}
+
+model AuditLog {
+  action     EnumAuditLogAction
+  createdAt  DateTime           @default(now())
+  fieldField String?            @map("field")
+  id         Int                @id @default(autoincrement())
+  newValue   Json?
+  oldValue   Json?
+  recordId   String
+  tableName  String
+  user       User?              @relation(fields: [userId], references: [id])
+  userId     Int?
+
+  @@index([userId], map: "AuditLog_userId_idx")
+  @@map("auditLog")
+}
+
+model Clinic {
+  address         String?
+  appointment     Appointment[]
+  createdAt       DateTime          @default(now())
+  dentalProcedure DentalProcedure[]
+  email           String?
+  id              Int               @id @default(autoincrement())
+  invoice         Invoice[]
+  logoUrl         String?
+  name            String
+  patient         Patient[]
+  phone           String?
+  professional    Professional[]
+  updatedAt       DateTime
+  user            User[]
+
+  @@map("clinic")
+}
+
+model DentalProcedure {
+  active               Boolean                @default(true)
+  basePrice            Float                  @default(0)
+  clinic               Clinic                 @relation(fields: [clinicId], references: [id])
+  clinicId             Int
+  code                 String
+  createdAt            DateTime               @default(now())
+  dentalProcedurePrice DentalProcedurePrice[]
+  description          String?                @db.VarChar(255)
+  id                   Int                    @id @default(autoincrement())
+  invoiceItem          InvoiceItem[]
+  name                 String
+  updatedAt            DateTime
+
+  @@index([clinicId], map: "DentalProcedure_clinicId_idx")
+  @@map("dentalProcedure")
+}
+
+model DentalProcedurePrice {
+  createdAt         DateTime        @default(now())
+  dentalProcedure   DentalProcedure @relation(fields: [dentalProcedureId], references: [id])
+  dentalProcedureId Int
+  healthInsurance   HealthInsurance @relation(fields: [healthInsuranceId], references: [id])
+  healthInsuranceId Int
+  id                Int             @id @default(autoincrement())
+  price             Float
+  updatedAt         DateTime
+
+  @@unique([dentalProcedureId, healthInsuranceId], map: "DentalProcedurePrice_unique")
+  @@index([healthInsuranceId], map: "DentalProcedurePrice_hi_idx")
+  @@index([dentalProcedureId], map: "DentalProcedurePrice_proc_idx")
+  @@map("dentalProcedurePrice")
+}
+
+model HealthInsurance {
+  code                 String                 @unique
+  contact              String?
+  createdAt            DateTime               @default(now())
+  dentalProcedurePrice DentalProcedurePrice[]
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  observations         String?                @db.Text
+  phone                String?
+  updatedAt            DateTime
+
+  @@map("healthInsurance")
+}
+
+model Invoice {
+  clinic      Clinic?           @relation(fields: [clinicId], references: [id])
+  clinicId    Int?
+  createdAt   DateTime          @default(now())
+  date        DateTime          @default(now())
+  id          Int               @id @default(autoincrement())
+  invoiceItem InvoiceItem[]
+  notes       String?
+  patient     Patient           @relation(fields: [patientId], references: [id])
+  patientId   Int
+  payment     Payment[]
+  status      EnumInvoiceStatus @default(PENDING)
+  totalAmount Float
+  updatedAt   DateTime
+
+  @@index([clinicId], map: "Invoice_clinicId_fkey")
+  @@index([patientId], map: "Invoice_patientId_fkey")
+  @@map("invoice")
+}
+
+model InvoiceItem {
+  createdAt         DateTime         @default(now())
+  dentalProcedure   DentalProcedure? @relation(fields: [dentalProcedureId], references: [id])
+  dentalProcedureId Int?
+  id                Int              @id @default(autoincrement())
+  invoice           Invoice          @relation(fields: [invoiceId], references: [id])
+  invoiceId         Int
+  quantity          Int              @default(1)
+  total             Float            @default(0)
+  treatment         Treatment?       @relation(fields: [treatmentId], references: [id])
+  treatmentId       Int?
+  unitPrice         Float            @default(0)
+  updatedAt         DateTime
+
+  @@index([invoiceId], map: "invoiceItem_invoice_idx")
+  @@index([dentalProcedureId], map: "invoiceItem_proc_idx")
+  @@index([treatmentId], map: "invoiceItem_treatment_idx")
+  @@map("invoiceItem")
+}
+
+model MedicalRecord {
+  allergies    String?  @db.Text
+  bloodType    String?  @db.VarChar(10)
+  conditions   String?  @db.Text
+  createdAt    DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  medicines    String?  @db.Text
+  observations String?  @db.Text
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  patientId    Int      @unique
+  updatedAt    DateTime
+
+  @@map("medicalRecord")
+}
+
+model Message {
+  appointment   Appointment?       @relation(fields: [appointmentId], references: [id])
+  appointmentId Int?
+  channel       EnumMessageChannel
+  content       String
+  createdAt     DateTime           @default(now())
+  errorField    String?            @map("error")
+  id            Int                @id @default(autoincrement())
+  patient       Patient?           @relation(fields: [patientId], references: [id])
+  patientId     Int?
+  sentAt        DateTime?
+  status        EnumMessageStatus  @default(PENDING)
+
+  @@index([appointmentId])
+  @@index([patientId])
+  @@map("message")
+}
+
+model Odontogram {
+  createdAt       DateTime          @default(now())
+  id              Int               @id @default(autoincrement())
+  odontogramEntry OdontogramEntry[]
+  patient         Patient           @relation(fields: [patientId], references: [id])
+  patientId       Int               @unique
+  updatedAt       DateTime
+
+  @@map("odontogram")
+}
+
+model OdontogramEntry {
+  color         String?
+  conditionType String
+  createdAt     DateTime   @default(now())
+  id            Int        @id @default(autoincrement())
+  notes         String?
+  odontogram    Odontogram @relation(fields: [odontogramId], references: [id])
+  odontogramId  Int
+  surface       String?
+  tooth         String
+  updatedAt     DateTime
+
+  @@index([odontogramId], map: "OdontogramEntry_odontogramId_idx")
+  @@map("odontogramEntry")
+}
+
+model Patient {
+  address       String?
+  appointment   Appointment[]
+  birthDate     DateTime?
+  clinic        Clinic?        @relation(fields: [clinicId], references: [id])
+  clinicId      Int?
+  createdAt     DateTime       @default(now())
+  dni           String?        @unique
+  email         String?
+  firstName     String
+  gender        String?
+  id            Int            @id @default(autoincrement())
+  invoice       Invoice[]
+  lastName      String
+  medicalRecord MedicalRecord?
+  message       Message[]
+  odontogram    Odontogram?
+  phone         String?
+  updatedAt     DateTime
+
+  @@index([clinicId], map: "Patient_clinicId_fkey")
+  @@map("patient")
+}
+
+model Payment {
+  amount    Float
+  date      DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId Int
+  method    String
+  reference String?
+
+  @@index([invoiceId], map: "Payment_invoiceId_fkey")
+  @@map("payment")
+}
+
+model Professional {
+  active      Boolean       @default(true)
+  appointment Appointment[]
+  clinic      Clinic?       @relation(fields: [clinicId], references: [id])
+  clinicId    Int?
+  createdAt   DateTime      @default(now())
+  email       String?
+  fullName    String
+  id          Int           @id @default(autoincrement())
+  license     String?
+  phone       String?
+  speciality  String?
+  updatedAt   DateTime
+  user        User?         @relation(fields: [userId], references: [id])
+  userId      Int?          @unique
+
+  @@index([clinicId], map: "Professional_clinicId_fkey")
+  @@map("professional")
+}
+
+model RefreshToken {
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  @@index([userId], map: "RefreshToken_userId_fkey")
+  @@map("refreshToken")
+}
+
+model Treatment {
+  appointmentId  Int?
+  clinicId       Int?
+  cost           Float?
+  createdAt      DateTime            @default(now())
+  date           DateTime?
+  id             Int                 @id @default(autoincrement())
+  invoiceId      Int?
+  invoiceItem    InvoiceItem[]
+  observations   String?
+  patientId      Int
+  procedureName  String
+  professionalId Int
+  status         EnumTreatmentStatus @default(PLANNED)
+  surface        String?
+  tooth          String?
+  updatedAt      DateTime
+
+  @@map("treatment")
+}
+
+model User {
+  active       Boolean        @default(true)
+  auditLog     AuditLog[]
+  clinic       Clinic?        @relation(fields: [clinicId], references: [id])
+  clinicId     Int?
+  createdAt    DateTime       @default(now())
+  firstName    String?
+  id           Int            @id @default(autoincrement())
+  lastName     String?
+  password     String
+  professional Professional?
+  refreshToken RefreshToken[]
+  role         EnumUserRole   @default(VIEWER)
+  updatedAt    DateTime
+  username     String         @unique
+
+  @@index([clinicId], map: "User_clinicId_fkey")
+  @@map("user")
+}
+
+enum EnumAppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum EnumAuditLogAction {
+  INSERT
+  UPDATE
+  DELETE
+}
+
+enum EnumInvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum EnumMessageChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum EnumMessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum EnumTreatmentStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum EnumUserRole {
+  ADMIN
+  PROFESSIONAL
+  RECEPTIONIST
+  VIEWER
+  DENTIST
+  ASSISTANT
+  DOCTOR
+  USER
+}

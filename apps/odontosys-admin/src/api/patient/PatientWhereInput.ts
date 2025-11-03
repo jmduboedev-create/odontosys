@@ -1,0 +1,31 @@
+import { StringNullableFilter } from "../../util/StringNullableFilter";
+import { AppointmentListRelationFilter } from "../appointment/AppointmentListRelationFilter";
+import { DateTimeNullableFilter } from "../../util/DateTimeNullableFilter";
+import { ClinicWhereUniqueInput } from "../clinic/ClinicWhereUniqueInput";
+import { DateTimeFilter } from "../../util/DateTimeFilter";
+import { StringFilter } from "../../util/StringFilter";
+import { IntFilter } from "../../util/IntFilter";
+import { InvoiceListRelationFilter } from "../invoice/InvoiceListRelationFilter";
+import { MedicalRecordWhereUniqueInput } from "../medicalRecord/MedicalRecordWhereUniqueInput";
+import { MessageListRelationFilter } from "../message/MessageListRelationFilter";
+import { OdontogramWhereUniqueInput } from "../odontogram/OdontogramWhereUniqueInput";
+
+export type PatientWhereInput = {
+  address?: StringNullableFilter;
+  appointment?: AppointmentListRelationFilter;
+  birthDate?: DateTimeNullableFilter;
+  clinic?: ClinicWhereUniqueInput;
+  createdAt?: DateTimeFilter;
+  dni?: StringNullableFilter;
+  email?: StringNullableFilter;
+  firstName?: StringFilter;
+  gender?: StringNullableFilter;
+  id?: IntFilter;
+  invoice?: InvoiceListRelationFilter;
+  lastName?: StringFilter;
+  medicalRecord?: MedicalRecordWhereUniqueInput;
+  message?: MessageListRelationFilter;
+  odontogram?: OdontogramWhereUniqueInput;
+  phone?: StringNullableFilter;
+  updatedAt?: DateTimeFilter;
+};
